@@ -1,13 +1,5 @@
 esphome:
   name: esp32-wroom
-  on_boot:
-    priority: 600
-    then:
-      - if:
-          condition:
-            switch.is_on: onboard_led
-          then:
-            - script.execute: blink_script
 
 esp32:
   board: esp32dev
@@ -17,9 +9,6 @@ esp32:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  ap:
-    ssid: "ESP32 Fallback Hotspot"
-    password: "fallback123"
 
 captive_portal:
 
@@ -31,31 +20,6 @@ ota:
   platform: esphome
   password: "ota_password"
 
-sensor:
-  - platform: wifi_signal
-    name: "WiFi Signal"
-    update_interval: 60s
-
-
-globals:
-  - id: led_blink
-    type: bool
-    initial_value: 'true'
-  - id: scroll_lines
-    type: std::vector<std::string>
-    restore_value: false
-  - id: scroll_index
-    type: int
-    initial_value: '0'
-  - id: scroll_interval_id
-    type: float
-    initial_value: '5.0'
-output:
-  - platform: gpio
-    pin: GPIO2
-    id: led_output
-    inverted: true
-
 i2c:
   sda: GPIO21
   scl: GPIO22
@@ -64,104 +28,10 @@ i2c:
 display:
   - platform: lcd_pcf8574
     id: lcd_display
-    address: 0x3F
+    address: 0x27
     dimensions: 20x4
     lambda: |-
-      it.print(0, 0, "                    ");
-      if (id(scroll_lines).size() > 0) {
-        it.print(0, 0, id(scroll_lines)[id(scroll_index)].c_str());
-      } else {
-        it.print(0, 0, "No data");
-      }
-
-text:
-  - platform: template
-    name: "LCD Text"
-    id: lcd_text
-    mode: TEXT
-    optimistic: true
-    initial_value: "Hello from ESP!"
-    set_action:
-      then:
-        - lambda: |-
-            id(scroll_lines).clear();
-            std::string text = x;
-            std::string delimiter = "\n";
-            size_t pos = 0;
-            while ((pos = text.find(delimiter)) != std::string::npos) {
-              id(scroll_lines).push_back(text.substr(0, pos));
-              text.erase(0, pos + delimiter.length());
-            }
-            if (!text.empty()) id(scroll_lines).push_back(text);
-            id(scroll_index) = 0;
-            // Force display refresh
-            id(lcd_display).update();
-            // Start scrolling if more than one line
-            if (id(scroll_lines).size() > 1) {
-              id(scroll_script).stop();
-              id(scroll_script).execute();
-            }
-
-number:
-  - platform: template
-    name: "Scroll Interval"
-    id: scroll_interval
-    icon: "mdi:timer-sand"
-    unit_of_measurement: "s"
-    min_value: 2
-    max_value: 10
-    step: 1
-    restore_value: true
-    initial_value: 5
-    set_action:
-      then:
-        - lambda: |-
-            id(scroll_interval_id) = x;
-            if (id(scroll_lines).size() > 1) {
-              id(scroll_script).stop();
-              id(scroll_script).execute();
-            }
-
-script:
-  - id: scroll_script
-    mode: restart
-    then:
-      - while:
-          condition:
-            lambda: 'return id(scroll_lines).size() > 1;'
-          then:
-            - lambda: |-
-                id(scroll_index) = (id(scroll_index) + 1) % id(scroll_lines).size();
-                id(lcd_display).update();
-            - delay: !lambda |-
-                int ms = (int)(id(scroll_interval_id) * 1000);
-                return ms;
-  - id: blink_script
-    mode: restart
-    then:
-      - while:
-          condition:
-            lambda: 'return id(led_blink);'
-          then:
-            - output.turn_on: led_output
-            - delay: 500ms
-            - output.turn_off: led_output
-            - delay: 500ms
-
-switch:
-  - platform: template
-    name: "Onboard LED"
-    id: onboard_led
-    restore_mode: ALWAYS_ON
-    lambda: |-
-      return id(led_blink);
-    turn_on_action:
-      - globals.set:
-          id: led_blink
-          value: 'true'
-      - script.execute: blink_script
-    turn_off_action:
-      - globals.set:
-          id: led_blink
-          value: 'false'
-      - output.turn_off: led_output
+      it.print(0, 0, "Hello from ESP!");
+      it.print(0, 1, "Line 2");
+      it.print(0, 2, "Line 3");
+      it.print(0, 3, "Line 4");

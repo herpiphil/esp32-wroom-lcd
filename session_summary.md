@@ -1,32 +1,37 @@
-# ESP32-WROOM LED Blink Project Summary
+# ESP32 LCD Project - Summary (2026-06-29)
 
-## Goal
-Make the onboard LED (GPIO2, inverted) on an ESP32-WROOM dev board blink at 500ms intervals, controllable via an ESPHome switch, with reliable operation after power-on and OTA updates.
+## Hardware
+- ESP32 dev board (ESP32-WROOM-32)
+- I2C LCD display (PCF8574 backpack, 20x4)
+- Connected via USB (serial disappeared; now using OTA)
 
-## Current Behaviour
-- **Power up / reboot:** LED starts blinking immediately (switch ON by default).
-- **Turning the switch OFF** stops the blinking and turns the LED off.
-- **Turning the switch ON** starts the blinking again.
-- The device connects to WiFi and exposes the API atesp32-wroom.local`.
-- OTA updates are possible (password-protected).
+## Current Status
 
-## Files
--esp32-wroom.yaml – Main ESPHome configuration
--secrets.yaml – WiFi and OTA credentials
+### Compilation: SUCCESS
+- Firmware compiled successfully using ESPHome 2026.2.2
+- OTA upload worked: device now running firmware
 
-## Key Configuration Details
-- **Board:** esp32dev (ESP32-WROOM-32)
-- **LED pin:** GPIO2, inverted logic
-- **Blink script:** restart mode, 500ms on/off while switch is active
-- **Switch restore_mode:** ALWAYS_ON
-- **on_boot:** Checks if switch is ON, starts blink script if so
-- **Fallback AP:** "ESP32 Fallback Hotspot" / password: fallback123
-- **OTA password:** ota_password
-- **API:** Enabled, noise encryption off, reachable on port 6053
+### Display: FAILING
+- I2C bus scan detects device at address 0x3F
+- YAML configures display at address 0x27 (incorrect)
+- Error: [E][lcd_pcf8574:030]: Communication failed at 0x27
+- Device is marked FAILED
 
-## Verified
-- ✅ LED blinks correctly after boot
-- ✅ Switch toggles blinking on/off
-- ✅ OTA updates work
-- ✅ API handshake successful
-- ✅ WiFi signal: ~ -58 to -62 dBm
+### Home Assistant: No entities
+- Device connects to WiFi (192.168.1.201, SSID 'CiscoIOT')
+- API server running, but no entities exposed (likely due to display failure)
+
+## Changes Made
+1. Created esp32-wroom.yaml with basic ESPHome config
+2. Fixed YAML from corrupted echo-ridden version
+3. Removed invalid on_boot actions (display.update not an action)
+4. Used OTA instead of serial upload
+
+## Next Steps
+1. Change display address from 0x27 to 0x3F in YAML
+2. Re-compile and OTA update
+3. Verify display shows text
+4. Configure Home Assistant API entities if needed
+
+## Secrets File
+Expects secrets.yaml with wifi_ssid and wifi_password.
